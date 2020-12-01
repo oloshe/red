@@ -2,13 +2,16 @@ import { log, warn, error } from "./log";
 
 
 type RedSetOption = {
+  /** 是否强制增加结点 */
   force?: boolean
+  /** 指定结点 */
   node?: RedNode
 }
 
 const SPLITTER = '/'
 
 export default class Red {
+  /** 单例 */
   private static instance: Red;
   static getInstance(): Red {
     if (!this.instance) {
@@ -17,6 +20,9 @@ export default class Red {
     return this.instance;
   }
 
+  /**
+   * 监听者
+   */
   _listeners: {
     [path: string]: Array<{
       key: string
@@ -25,14 +31,18 @@ export default class Red {
     }>
   } = {}
 
+  /** 初始化路径数组 */
   _initialPaths: string[] = []
 
+  /** 红点数据 */
   map: {
     [key: string]: number,
   } = {}
 
-  constructor() {}
-
+  /**
+   * 初始化
+   * @param initialPaths 初始化路径
+   */
   init(initialPaths: string[]) {
     this._initialPaths = initialPaths;
     initialPaths.forEach(path => {
@@ -41,9 +51,14 @@ export default class Red {
     })
   }
 
+  /**
+   * 设置红点
+   * @param path 红点路径
+   * @param value 值
+   * @param options 选项
+   */
   set(path: string, value: number | boolean, options?: RedSetOption) {
     if (typeof value === 'boolean') value = Number(value)
-
     if (this.map[path] === value || this._checkMap(path, options?.force)) { return }
     log(`SET (${path}) = ${value}`)
     this.map[path] = value
@@ -51,12 +66,22 @@ export default class Red {
     this._notifyAll(path, value)
   }
 
+  /**
+   * 获取红点状态
+   * @param path 红点路径
+   */
   get(path: string): number {
     let result = red.map[path]
     if (this._checkMap(path)) { return 0 }
     return result
   }
 
+  /**
+   * 删除红点
+   * 
+   * *仅动态创建的结点*
+   * @param path 红点路径
+   */
   del(path: string) {
     if (this.map[path] === void 0) { return false }
     if (this._initialPaths.indexOf(path) !== -1) {
@@ -72,6 +97,11 @@ export default class Red {
     return true
   }
 
+  /**
+   * 检查红点数据
+   * @param path 红点路径
+   * @param force 是否强制增加结点
+   */
   private _checkMap(path: string, force?: boolean) {
     let isVoid = this.map[path] === void 0
     if (!isVoid) { return false}
@@ -86,6 +116,10 @@ export default class Red {
     return true
   }
 
+  /**
+   * 切换固定状态
+   * @param path 红点路径
+   */
   fixToggle(path: string) {
     let node = tree.find(path)
     if (!node) { return false }
@@ -119,6 +153,12 @@ export default class Red {
 
 */
 
+  /**
+   * 订阅监听红点状态
+   * @param path 红点路径
+   * @param callback 回调函数
+   * @param context 回调上下文
+   */
   on(path: string, callback: (num: number) => void, context?: any) {
     if (typeof callback === 'function') {
       if (!this._listeners[path]) { this._listeners[path] = [] }
@@ -130,6 +170,11 @@ export default class Red {
     return ''
   }
 
+  /**
+   * 关闭监听
+   * @param path 红点路径
+   * @param key 红点监听钥匙（red.on返回）
+   */
   off(path: string, key: string) {
     if (!this._listeners[path]) { return }
     let arr = this._listeners[path];
@@ -144,6 +189,11 @@ export default class Red {
     }
   }
 
+  /**
+   * 红点变化通知所有监听者
+   * @param path 红点路径
+   * @param value 值
+   */
   private _notifyAll(path: string, value: number) {
     if (!this._listeners[path]) { return }
     let arr = this._listeners[path];
@@ -164,6 +214,7 @@ export default class Red {
 
 */
 
+/** 红点结点 */
 class RedNode {
   children: {
     [name: string]: RedNode
@@ -180,6 +231,10 @@ class RedNode {
     this.parent = parent ?? null
   }
 
+  /**
+   * 添加子结点
+   * @param path 红点路径
+   */
   addChild(path: string) {
     if (path === '') { return false }
     let keyNames = path.split(SPLITTER)
@@ -205,6 +260,10 @@ class RedNode {
     return true
   }
 
+  /**
+   * 切换固定状态
+   * 解除固定后自动更行自身值
+   */
   fixToggle() {
     let isFixed = this.isFixed = !this.isFixed
     if (!isFixed) {
@@ -214,6 +273,10 @@ class RedNode {
     return isFixed
   }
 
+  /**
+   * 兄弟齐心，获取parent结点所有子辈的值总和
+   * @param parent 目标父节点
+   */
   private static _brotherhood(parent: RedNode) {
     let total = 0
     if (parent) {
@@ -225,6 +288,12 @@ class RedNode {
     return total
   }
 
+  /**
+   * 执行更新
+   * @param source 源结点
+   * @param target 目标结点
+   * @param value 值
+   */
   static exec(source: RedNode, target: string | RedNode, value: number) {
     let node: RedNode
     if (typeof target === 'string') {
@@ -249,6 +318,10 @@ class RedNode {
     return true
   }
 
+  /**
+   * 在目标节点下寻找子节点
+   * @param path 路径
+   */
   find(path: string) {
     if (!path) { return this }
     let nodeNames = path.split(SPLITTER)
@@ -264,6 +337,10 @@ class RedNode {
     return node
   }
 
+  /**
+   * 获取结点完整的路径
+   * @param node 结点
+   */  
   static getPath(node: RedNode) {
     let names = []
     while (node && node.parent) {

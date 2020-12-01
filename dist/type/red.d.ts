@@ -16,13 +16,13 @@ export default class Red {
     map: {
         [key: string]: number;
     };
-    constructor();
     init(initialPaths: string[]): void;
     set(path: string, value: number | boolean, options?: RedSetOption): void;
     get(path: string): number;
     del(path: string): boolean;
     private _checkMap;
     fixToggle(path: string): boolean;
+    dump(): void;
     on(path: string, callback: (num: number) => void, context?: any): string;
     off(path: string, key: string): void;
     private _notifyAll;

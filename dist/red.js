@@ -78,6 +78,19 @@ var Red = (function () {
         }
         return node.fixToggle();
     };
+    Red.prototype.dump = function () {
+        log('map', this.map);
+        log('listeners', this._listeners);
+        log('tree:');
+        (function a(n, l) {
+            l === 1 && console.groupCollapsed(n.name + " (" + n.value + ")");
+            l > 1 && console.log('\t'.repeat(l - 1) + "%c" + n.name + " -> %c" + n.value + (n.isFixed ? ' [FIX]' : ''), n.value ? '' : 'color:#777;', n.value ? 'color:#f55;' : 'color:#777;');
+            for (var i in n.children) {
+                a(n.children[i], l + 1);
+            }
+            l === 1 && console.groupEnd();
+        })(tree, 0);
+    };
     Red.prototype.on = function (path, callback, context) {
         if (typeof callback === 'function') {
             if (!this._listeners[path]) {
