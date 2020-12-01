@@ -206,3 +206,9 @@ describe('observer', () => {
     expect(receiveTime).toBe(2)
   })
 })
+
+describe('test', () => {
+  test('dump', () => {
+    red.dump()
+  })
+})

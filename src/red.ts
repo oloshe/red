@@ -92,6 +92,23 @@ export default class Red {
     return node.fixToggle()
   }
 
+  dump() {
+    log('map', this.map)
+    log('listeners', this._listeners)
+    log('tree:')
+    ; (function a(n, l) {
+        l === 1 && console.groupCollapsed(`${n.name} (${n.value})`)
+        l > 1 && console.log(
+            `${'\t'.repeat(l - 1)}%c${n.name} -> %c${n.value}${n.isFixed?' [FIX]':''}`,
+            n.value ? '' : 'color:#777;',
+            n.value ? 'color:#f55;' : 'color:#777;')
+        for (let i in n.children) {
+            a(n.children[i], l + 1)
+        }
+        l === 1 && console.groupEnd()
+    })(tree, 0)
+  }
+
 /*
         _                                        
        | |                                       
