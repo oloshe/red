@@ -1,5 +1,5 @@
 {
-  "name": "red",
+  "name": "red-manager",
   "version": "0.0.1",
   "description": "基于树结构的红点通知管理模块",
   "main": "dist/red.js",
