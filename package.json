@@ -1,6 +1,6 @@
 {
   "name": "red-manager",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "基于树结构的红点通知管理模块",
   "main": "dist/red.js",
   "types": "dist/type/red.d.ts",
@@ -12,6 +12,10 @@
   },
   "keywords": [],
   "author": "jacob.jiang",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oloshe/red-manager"
+  },
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^26.0.15",
