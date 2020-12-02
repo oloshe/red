@@ -27,7 +27,7 @@ var _logFactory = function (f, level) {
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        debugLevel > level && (_a = console[f]).call.apply(_a, __spread([console, RedMark], args));
+        debugLevel >= level && (_a = console[f]).call.apply(_a, __spread([console, RedMark], args));
     };
 };
 export var log = _logFactory('log', 3);

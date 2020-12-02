@@ -1,4 +1,5 @@
-import { log, warn, error, setDebugLevel } from "./log";
+import { log, warn, error } from "./log";
+export { setDebugLevel } from "./log";
 var SPLITTER = '/';
 var Red = /** @class */ (function () {
     function Red() {
@@ -188,8 +189,6 @@ var Red = /** @class */ (function () {
             callback.call(context || null, value);
         }
     };
-    /** 调试用 */
-    Red.setDebugLevel = setDebugLevel;
     return Red;
 }());
 export default Red;
@@ -261,11 +260,9 @@ var RedNode = /** @class */ (function () {
      */
     RedNode._brotherhood = function (parent) {
         var total = 0;
-        if (parent) {
-            var children = parent.children;
-            for (var i in children) {
-                total += children[i].value;
-            }
+        var children = parent.children;
+        for (var i in children) {
+            total += children[i].value;
         }
         return total;
     };

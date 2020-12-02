@@ -1,3 +1,4 @@
+export { setDebugLevel } from "./log";
 declare type RedSetOption = {
     /** 是否强制增加结点 */
     force?: boolean;
@@ -5,8 +6,6 @@ declare type RedSetOption = {
     node?: RedNode;
 };
 export default class Red {
-    /** 调试用 */
-    static setDebugLevel: (level: 0 | 1 | 2 | 3) => void;
     /** 单例 */
     private static instance;
     static getInstance(): Red;
@@ -118,4 +117,3 @@ declare class RedNode {
      */
     static getPath(node: RedNode): string;
 }
-export {};
