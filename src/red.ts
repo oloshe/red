@@ -280,11 +280,9 @@ class RedNode {
    */
   private static _brotherhood(parent: RedNode) {
     let total = 0
-    if (parent) {
-      let children = parent.children
-      for (let i in children) {
-        total += children[i].value
-      }
+    let children = parent.children
+    for (let i in children) {
+      total += children[i].value
     }
     return total
   }
