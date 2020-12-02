@@ -1,3 +1,10 @@
-export declare const log: (...args: any[]) => void;
-export declare const warn: (...args: any[]) => void;
-export declare const error: (...args: any[]) => void;
+declare type OFF = 0;
+declare type DEBUG = 1;
+declare type WARN = 2;
+declare type INFO = 3;
+declare type debugLevelType = OFF | DEBUG | WARN | INFO;
+export declare const log: (...args: any) => void;
+export declare const warn: (...args: any) => void;
+export declare const error: (...args: any) => void;
+export declare const setDebugLevel: (level: debugLevelType) => void;
+export {};

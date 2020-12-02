@@ -1,9 +1,14 @@
-import { log, warn, error } from "./log";
+import { log, warn, error, setDebugLevel } from "./log";
 var SPLITTER = '/';
-var Red = (function () {
+var Red = /** @class */ (function () {
     function Red() {
+        /**
+         * 监听者
+         */
         this._listeners = {};
+        /** 初始化路径数组 */
         this._initialPaths = [];
+        /** 红点数据 */
         this.map = {};
     }
     Red.getInstance = function () {
@@ -12,6 +17,10 @@ var Red = (function () {
         }
         return this.instance;
     };
+    /**
+     * 初始化
+     * @param initialPaths 初始化路径
+     */
     Red.prototype.init = function (initialPaths) {
         var _this = this;
         this._initialPaths = initialPaths;
@@ -20,6 +29,12 @@ var Red = (function () {
             tree.addChild(path);
         });
     };
+    /**
+     * 设置红点
+     * @param path 红点路径
+     * @param value 值
+     * @param options 选项
+     */
     Red.prototype.set = function (path, value, options) {
         if (typeof value === 'boolean')
             value = Number(value);
@@ -31,6 +46,10 @@ var Red = (function () {
         RedNode.exec(tree, (options === null || options === void 0 ? void 0 : options.node) ? options.node : path, value);
         this._notifyAll(path, value);
     };
+    /**
+     * 获取红点状态
+     * @param path 红点路径
+     */
     Red.prototype.get = function (path) {
         var result = red.map[path];
         if (this._checkMap(path)) {
@@ -38,6 +57,12 @@ var Red = (function () {
         }
         return result;
     };
+    /**
+     * 删除红点
+     *
+     * *仅动态创建的结点*
+     * @param path 红点路径
+     */
     Red.prototype.del = function (path) {
         if (this.map[path] === void 0) {
             return false;
@@ -56,13 +81,19 @@ var Red = (function () {
         log("DEL (" + path + ")");
         return true;
     };
+    /**
+     * 检查红点数据
+     * @param path 红点路径
+     * @param force 是否强制增加结点
+     */
     Red.prototype._checkMap = function (path, force) {
+        var _this = this;
         var isVoid = this.map[path] === void 0;
         if (!isVoid) {
             return false;
         }
         if (force) {
-            var ret = tree.addChild(path);
+            var ret = tree.addChild(path, function (p) { return _this.map[p] = 0; });
             if (!ret) {
                 error("NEW (" + path + ") Failed");
             }
@@ -71,6 +102,10 @@ var Red = (function () {
         warn("GET (" + path + ") Failed: please register: " + path);
         return true;
     };
+    /**
+     * 切换固定状态
+     * @param path 红点路径
+     */
     Red.prototype.fixToggle = function (path) {
         var node = tree.find(path);
         if (!node) {
@@ -91,6 +126,21 @@ var Red = (function () {
             l === 1 && console.groupEnd();
         })(tree, 0);
     };
+    /*
+            _
+           | |
+      ___  | |__   ___   ___  _ __ __   __ ___  _ __
+     / _ \ | '_ \ / __| / _ \| '__|\ \ / // _ \| '__|
+    | (_) || |_) |\__ \|  __/| |    \ V /|  __/| |
+     \___/ |_.__/ |___/ \___||_|     \_/  \___||_|
+    
+    */
+    /**
+     * 订阅监听红点状态
+     * @param path 红点路径
+     * @param callback 回调函数
+     * @param context 回调上下文
+     */
     Red.prototype.on = function (path, callback, context) {
         if (typeof callback === 'function') {
             if (!this._listeners[path]) {
@@ -103,6 +153,11 @@ var Red = (function () {
         error("Listen (" + path + ") Failed: not a function");
         return '';
     };
+    /**
+     * 关闭监听
+     * @param path 红点路径
+     * @param key 红点监听钥匙（red.on返回）
+     */
     Red.prototype.off = function (path, key) {
         if (!this._listeners[path]) {
             return;
@@ -118,6 +173,11 @@ var Red = (function () {
             delete this._listeners[path];
         }
     };
+    /**
+     * 红点变化通知所有监听者
+     * @param path 红点路径
+     * @param value 值
+     */
     Red.prototype._notifyAll = function (path, value) {
         if (!this._listeners[path]) {
             return;
@@ -128,10 +188,22 @@ var Red = (function () {
             callback.call(context || null, value);
         }
     };
+    /** 调试用 */
+    Red.setDebugLevel = setDebugLevel;
     return Red;
 }());
 export default Red;
-var RedNode = (function () {
+/*
+ _
+| |
+| |_ _ __ ___  ___
+| __| '__/ _ \/ _ \
+| |_| | |  __/  __/
+ \__|_|  \___|\___|
+
+*/
+/** 红点结点 */
+var RedNode = /** @class */ (function () {
     function RedNode(name, parent) {
         this.children = {};
         this.name = name;
@@ -139,7 +211,12 @@ var RedNode = (function () {
         this.isFixed = false;
         this.parent = parent !== null && parent !== void 0 ? parent : null;
     }
-    RedNode.prototype.addChild = function (path) {
+    /**
+     * 添加子结点
+     * @param path 红点路径
+     * @param callback 红点set的回调，用于设置临时创建的结点
+     */
+    RedNode.prototype.addChild = function (path, callback) {
         if (path === '') {
             return false;
         }
@@ -153,10 +230,11 @@ var RedNode = (function () {
                 node = node.children[k];
             }
             else {
+                // across
                 var newNode_1 = new RedNode(k, node);
                 node.children[k] = newNode_1;
                 node = newNode_1;
-                red.map[tmpPath] = 0;
+                callback === null || callback === void 0 ? void 0 : callback(tmpPath);
             }
             tmpPath += SPLITTER;
         }
@@ -165,6 +243,10 @@ var RedNode = (function () {
         node.children[leafKey] = newNode;
         return true;
     };
+    /**
+     * 切换固定状态
+     * 解除固定后自动更行自身值
+     */
     RedNode.prototype.fixToggle = function () {
         var isFixed = this.isFixed = !this.isFixed;
         if (!isFixed) {
@@ -173,6 +255,10 @@ var RedNode = (function () {
         }
         return isFixed;
     };
+    /**
+     * 兄弟齐心，获取parent结点所有子辈的值总和
+     * @param parent 目标父节点
+     */
     RedNode._brotherhood = function (parent) {
         var total = 0;
         if (parent) {
@@ -183,6 +269,12 @@ var RedNode = (function () {
         }
         return total;
     };
+    /**
+     * 执行更新
+     * @param source 源结点
+     * @param target 目标结点
+     * @param value 值
+     */
     RedNode.exec = function (source, target, value) {
         var node;
         if (typeof target === 'string') {
@@ -211,6 +303,10 @@ var RedNode = (function () {
         }
         return true;
     };
+    /**
+     * 在目标节点下寻找子节点
+     * @param path 路径
+     */
     RedNode.prototype.find = function (path) {
         if (!path) {
             return this;
@@ -227,6 +323,10 @@ var RedNode = (function () {
         }
         return node;
     };
+    /**
+     * 获取结点完整的路径
+     * @param node 结点
+     */
     RedNode.getPath = function (node) {
         var names = [];
         while (node && node.parent) {

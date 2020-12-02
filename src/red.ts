@@ -1,5 +1,5 @@
 import { log, warn, error } from "./log";
-
+export { setDebugLevel } from "./log"
 
 type RedSetOption = {
   /** 是否强制增加结点 */
@@ -23,7 +23,7 @@ export default class Red {
   /**
    * 监听者
    */
-  _listeners: {
+  private _listeners: {
     [path: string]: Array<{
       key: string
       context?: any
@@ -32,10 +32,10 @@ export default class Red {
   } = {}
 
   /** 初始化路径数组 */
-  _initialPaths: string[] = []
+  private _initialPaths: string[] = []
 
   /** 红点数据 */
-  map: {
+  private map: {
     [key: string]: number,
   } = {}
 
@@ -106,7 +106,7 @@ export default class Red {
     let isVoid = this.map[path] === void 0
     if (!isVoid) { return false}
     if (force) {
-        let ret = tree.addChild(path)
+        let ret = tree.addChild(path, p => this.map[p] = 0)
         if (!ret) {
           error(`NEW (${path}) Failed`)
         }
@@ -234,8 +234,9 @@ class RedNode {
   /**
    * 添加子结点
    * @param path 红点路径
+   * @param callback 红点set的回调，用于设置临时创建的结点
    */
-  addChild(path: string) {
+  addChild(path: string, callback?: (path: string) => void) {
     if (path === '') { return false }
     let keyNames = path.split(SPLITTER)
     let node: RedNode = this
@@ -250,7 +251,7 @@ class RedNode {
         let newNode = new RedNode(k, node)
         node.children[k] = newNode
         node = newNode
-        red.map[tmpPath] = 0
+        callback?.(tmpPath)
       }
       tmpPath += SPLITTER
     }
