@@ -80,6 +80,8 @@ setDebugLevel(3);
 red.dump();
 ```
 
+![截图](https://raw.githubusercontent.com/oloshe/red-manager/main/img/20201202141157.png)
+
 ## 总结
 
 更多的待补充，日后继续更新......
