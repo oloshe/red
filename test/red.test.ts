@@ -1,40 +1,37 @@
 import Red from "../src/red";
 
 const red = Red.getInstance()
-
+Red.setDebugLevel(0);
 test("init", () => {
   red.init(['index', 'index/tab1', 'index/tab2', 'index/tab3', 'index/tab1/btn'])
-  expect(red.map).toEqual({
-    'index': 0,
-    'index/tab1': 0,
-    'index/tab1/btn': 0,
-    'index/tab2': 0,
-    'index/tab3': 0,
-  })
+  // red.map
+  // {
+  //   'index': 0,
+  //   'index/tab1': 0,
+  //   'index/tab1/btn': 0,
+  //   'index/tab2': 0,
+  //   'index/tab3': 0,
+  // }
+  expect(red.get('index')).toBe(0)
+  expect(red.get('index/tab1')).toBe(0)
+  expect(red.get('index/tab1/btn')).toBe(0)
+  expect(red.get('index/tab2')).toBe(0)
+  expect(red.get('index/tab3')).toBe(0)
 })
 
 describe('set', () => {
 
   test('set', () => {
     red.set('index/tab1/btn', 1)
-    expect(red.map).toEqual({
-      'index': 1,
-      'index/tab1': 1,
-      'index/tab1/btn': 1,
-      'index/tab2': 0,
-      'index/tab3': 0,
-    })
+    expect(red.get('index')).toBe(1)
+    expect(red.get('index/tab1')).toBe(1)
+    expect(red.get('index/tab1/btn')).toBe(1)
 
     red.set('index/tab2', 10)
     // same-value test
     red.set('index/tab2', 10)
-    expect(red.map).toEqual({
-      'index': 11,
-      'index/tab1': 1,
-      'index/tab1/btn': 1,
-      'index/tab2': 10,
-      'index/tab3': 0,
-    })
+    expect(red.get('index')).toBe(11)
+    expect(red.get('index/tab2')).toBe(10)
   })
 
   test('set boolean-conversion', () => {
@@ -43,9 +40,7 @@ describe('set', () => {
   })
 
   test('set empty', () => {
-    let oldMap = JSON.parse(JSON.stringify(red.map))
     red.set('', 1)
-    expect(red.map).toEqual(oldMap)
   })
 
   test('set-force', () => {
@@ -58,50 +53,27 @@ describe('set', () => {
     red.set('index/tab3/f3', 3, {
       force: true
     })
-    expect(red.map).toEqual({
-      'index': 17,
-      'index/tab1': 1,
-      'index/tab1/btn': 1,
-      'index/tab2': 10,
-      'index/tab3': 6,
-      'index/tab3/f1': 1,
-      'index/tab3/f2': 2,
-      'index/tab3/f3': 3,
-    })
+    expect(red.get('index/tab3/f1')).toBe(1)
+    expect(red.get('index/tab3/f2')).toBe(2)
+    expect(red.get('index/tab3/f3')).toBe(3)
+    expect(red.get('index/tab3')).toBe(6)
+    expect(red.get('index')).toBe(17)
   })
 
   test('set empty-force', () => {
     red.set('', 1, {
       force: true
     })
-    expect(red.map).toEqual({
-      'index': 17,
-      'index/tab1': 1,
-      'index/tab1/btn': 1,
-      'index/tab2': 10,
-      'index/tab3': 6,
-      'index/tab3/f1': 1,
-      'index/tab3/f2': 2,
-      'index/tab3/f3': 3,
-    })
   })
 
   test('set across-empty', () => {
+    // index/tab4 is not be added in tree
     red.set('index/tab4/new', 1, {
       force: true
     })
-    expect(red.map).toEqual({
-      'index': 18,
-      'index/tab1': 1,
-      'index/tab1/btn': 1,
-      'index/tab2': 10,
-      'index/tab3': 6,
-      'index/tab3/f1': 1,
-      'index/tab3/f2': 2,
-      'index/tab3/f3': 3,
-      'index/tab4': 1,
-      'index/tab4/new': 1
-    })
+    expect(red.get('index/tab4')).toBe(1)
+    expect(red.get('index/tab4/new')).toBe(1)
+    expect(red.get('index')).toBe(18)
   })
 
 })
