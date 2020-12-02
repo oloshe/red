@@ -1,7 +1,7 @@
-import Red from "../src/red";
+import Red, { setDebugLevel } from "../src/red"
 
 const red = Red.getInstance()
-Red.setDebugLevel(0);
+setDebugLevel(0);
 test("init", () => {
   red.init(['index', 'index/tab1', 'index/tab2', 'index/tab3', 'index/tab1/btn'])
   // red.map
