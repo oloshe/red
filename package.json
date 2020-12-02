@@ -1,6 +1,6 @@
 {
   "name": "red-manager",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "基于树结构的红点通知管理模块",
   "main": "dist/red.js",
   "types": "dist/type/red.d.ts",

@@ -3,3 +3,4 @@ coverage
 test
 .gitignore
 jest.config.js
+img
