@@ -15,7 +15,7 @@
 npm install red-manager
 ```
 
-## 用法
+## 基础用法
 
 导入
 
@@ -36,6 +36,7 @@ red.init([
 
 设置红点
 (红点管理器的哲学时只设置叶结点的数据，中间结点全部由节点树的自动更新机制处理)
+
 ```TypeScript
 const data = await /* 从服务器接收的数据 */
 const num: number = /* 根据数据获取判断红点是否存在的数据 */
@@ -46,7 +47,15 @@ const haveRedDot: boolean = /* 用于判断红点存在的布尔类型数据 */
 red.set('index/tab1', haveRedDot) // haveRedDot 会自动转换成 0 / 1
 ```
 
+获取红点状态
+
+```TypeScript
+const num:number = red.get('index/tab1')
+```
+
+
 监听红点数据变化
+
 ```TypeScript
 let key: string
 key = red.on('index', (num: number) => {
@@ -56,6 +65,29 @@ key = red.on('index', (num: number) => {
 // 取消监听
 red.off('index', key)
 ```
+
+动态创建结点
+
+```TypeScript
+red.set('index/tab3', 1, { force: true })
+
+// 跨越空结点动态创建 (index/tab4不存在)
+red.set('index/tab4/temp', 1, { force: true })
+```
+
+> 动态创建适用场景：数量不确定的列表，例如聊天消息
+>
+> 不建议初始化时为了提高创建速度而只保留叶子结点，初始化时的数组将会防止被被删除。
+
+删除动态创建的结点
+
+```TypeScript
+const ret: boolean = red.del('index/tab4')
+```
+
+> 删除index/tab4结点时，index/tab4/temp结点也被释放
+>
+> 删除结点时不会通知监听者，因为删除红点前通常也会把对应的组件给销毁了
 
 
 ## 调试
