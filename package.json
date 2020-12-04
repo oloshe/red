@@ -1,6 +1,6 @@
 {
   "name": "red-manager",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "基于树结构的红点通知管理模块",
   "main": "dist/red.js",
   "types": "dist/type/red.d.ts",
@@ -8,6 +8,7 @@
     "build": "tsc",
     "release": "tsc && npm publish",
     "test": "jest",
+    "testw": "jest --watch",
     "testc": "jest --coverage"
   },
   "keywords": [],
