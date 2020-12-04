@@ -39,10 +39,11 @@ var Red = /** @class */ (function () {
     Red.prototype.set = function (path, value, options) {
         if (typeof value === 'boolean')
             value = Number(value);
-        if (this.map[path] === value || this._checkMap(path, options === null || options === void 0 ? void 0 : options.force)) {
+        var force = options === null || options === void 0 ? void 0 : options.force;
+        if (this.map[path] === value || this._checkMap(path, force)) {
             return;
         }
-        log("SET (" + path + ") = " + value);
+        log("SET (" + path + ") = " + value + (force ? ' 📌' : ''));
         this.map[path] = value;
         RedNode.exec(tree, (options === null || options === void 0 ? void 0 : options.node) ? options.node : path, value);
         this._notifyAll(path, value);
@@ -65,7 +66,6 @@ var Red = /** @class */ (function () {
      * @param path 红点路径
      */
     Red.prototype.del = function (path) {
-        var _a;
         if (this.map[path] === void 0) {
             return false;
         }
@@ -73,7 +73,7 @@ var Red = /** @class */ (function () {
             error("DEL (" + path + ") FAIL: can't delete Initialized path");
             return false;
         }
-        if (((_a = this._listeners[path]) === null || _a === void 0 ? void 0 : _a.length) !== 0) {
+        if (this._listeners[path] && this._listeners[path].length > 0) {
             warn("DEL (" + path + ") warn: It's still exists listener(s), please cancel listening use red.off");
         }
         var node = tree.find(path);

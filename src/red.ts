@@ -59,8 +59,9 @@ class Red {
    */
   set(path: string, value: number | boolean, options?: RedSetOption) {
     if (typeof value === 'boolean') value = Number(value)
-    if (this.map[path] === value || this._checkMap(path, options?.force)) { return }
-    log(`SET (${path}) = ${value}`)
+    let force = options?.force
+    if (this.map[path] === value || this._checkMap(path, force)) { return }
+    log(`SET (${path}) = ${value}${force?' 📌':''}`)
     this.map[path] = value
     RedNode.exec(tree, options?.node ? options.node : path, value)
     this._notifyAll(path, value)
@@ -88,7 +89,7 @@ class Red {
         error(`DEL (${path}) FAIL: can't delete Initialized path`)
         return false
     }
-    if (this._listeners[path]?.length !== 0) {
+    if (this._listeners[path] && this._listeners[path].length > 0) {
       warn(`DEL (${path}) warn: It's still exists listener(s), please cancel listening use red.off`);
     }
     let node = tree.find(path)
