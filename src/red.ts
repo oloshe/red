@@ -10,7 +10,7 @@ type RedSetOption = {
 
 const SPLITTER = '/'
 
-export default class Red {
+class Red {
   /** 单例 */
   private static instance: Red;
   static getInstance(): Red {
@@ -79,22 +79,50 @@ export default class Red {
   /**
    * 删除红点
    * 
-   * *仅动态创建的结点*
+   * *仅可删除动态创建的结点*
    * @param path 红点路径
    */
   del(path: string) {
     if (this.map[path] === void 0) { return false }
     if (this._initialPaths.indexOf(path) !== -1) {
-        warn(`DEL (${path}) FAIL: can't delete Initialized path`)
+        error(`DEL (${path}) FAIL: can't delete Initialized path`)
         return false
+    }
+    if (this._listeners[path]?.length !== 0) {
+      warn(`DEL (${path}) warn: It's still exists listener(s), please cancel listening use red.off`);
     }
     let node = tree.find(path)
     if (!node) { return false }
     RedNode.exec(tree, node, 0)
-    delete this.map[path]
-    node.parent && delete node.parent.children[node.name]
+    this._del(path, node)
     log(`DEL (${path})`)
     return true
+  }
+
+  /**
+   * 删除结点的方法
+   * @param path 红点路径
+   * @param node 结点
+   */
+  private _del(path: string, node: RedNode) {
+    const delByPath = (path: string) => {
+      // 删除所有Map上的数据
+      delete this.map[path]
+      // 删除所有监听者
+      delete this._listeners[path]
+      // 没有必要通知监听者
+      // 删除红点前通常也会把对应的组件给销毁了
+    }
+    let map = this.map, pathPrefix = path + SPLITTER;
+    delByPath(path)
+    for (let p in map) {
+      if (p.startsWith(pathPrefix)) {
+        delByPath(p)
+      }
+    }
+    // 删除所有Tree上的数据
+    node.parent && delete node.parent.children[node.name]
+
   }
 
   /**
@@ -198,11 +226,12 @@ export default class Red {
     if (!this._listeners[path]) { return }
     let arr = this._listeners[path];
     for (let i = 0; i < arr.length; i++) {
-        let { callback, context } = arr[i]
-        callback.call(context || null, value)
+      let { callback, context } = arr[i]
+      callback.call(context || null, value)
     }
   }
 }
+export default Red.getInstance()
 
 /*
  _                 

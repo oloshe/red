@@ -5,7 +5,7 @@ declare type RedSetOption = {
     /** 指定结点 */
     node?: RedNode;
 };
-export default class Red {
+declare class Red {
     /** 单例 */
     private static instance;
     static getInstance(): Red;
@@ -37,10 +37,16 @@ export default class Red {
     /**
      * 删除红点
      *
-     * *仅动态创建的结点*
+     * *仅可删除动态创建的结点*
      * @param path 红点路径
      */
     del(path: string): boolean;
+    /**
+     * 删除结点的方法
+     * @param path 红点路径
+     * @param node 结点
+     */
+    private _del;
     /**
      * 检查红点数据
      * @param path 红点路径
@@ -73,6 +79,8 @@ export default class Red {
      */
     private _notifyAll;
 }
+declare const _default: Red;
+export default _default;
 /** 红点结点 */
 declare class RedNode {
     children: {

@@ -61,26 +61,54 @@ var Red = /** @class */ (function () {
     /**
      * 删除红点
      *
-     * *仅动态创建的结点*
+     * *仅可删除动态创建的结点*
      * @param path 红点路径
      */
     Red.prototype.del = function (path) {
+        var _a;
         if (this.map[path] === void 0) {
             return false;
         }
         if (this._initialPaths.indexOf(path) !== -1) {
-            warn("DEL (" + path + ") FAIL: can't delete Initialized path");
+            error("DEL (" + path + ") FAIL: can't delete Initialized path");
             return false;
+        }
+        if (((_a = this._listeners[path]) === null || _a === void 0 ? void 0 : _a.length) !== 0) {
+            warn("DEL (" + path + ") warn: It's still exists listener(s), please cancel listening use red.off");
         }
         var node = tree.find(path);
         if (!node) {
             return false;
         }
         RedNode.exec(tree, node, 0);
-        delete this.map[path];
-        node.parent && delete node.parent.children[node.name];
+        this._del(path, node);
         log("DEL (" + path + ")");
         return true;
+    };
+    /**
+     * 删除结点的方法
+     * @param path 红点路径
+     * @param node 结点
+     */
+    Red.prototype._del = function (path, node) {
+        var _this = this;
+        var delByPath = function (path) {
+            // 删除所有Map上的数据
+            delete _this.map[path];
+            // 删除所有监听者
+            delete _this._listeners[path];
+            // 没有必要通知监听者
+            // 删除红点前通常也会把对应的组件给销毁了
+        };
+        var map = this.map, pathPrefix = path + SPLITTER;
+        delByPath(path);
+        for (var p in map) {
+            if (p.startsWith(pathPrefix)) {
+                delByPath(p);
+            }
+        }
+        // 删除所有Tree上的数据
+        node.parent && delete node.parent.children[node.name];
     };
     /**
      * 检查红点数据
@@ -149,6 +177,7 @@ var Red = /** @class */ (function () {
             }
             var key = (Math.random() * Math.pow(10, 10)).toFixed(0);
             this._listeners[path].push({ callback: callback, context: context, key: key });
+            console.log(this);
             return key;
         }
         error("Listen (" + path + ") Failed: not a function");
@@ -180,6 +209,7 @@ var Red = /** @class */ (function () {
      * @param value 值
      */
     Red.prototype._notifyAll = function (path, value) {
+        console.log(path, value, this._listeners);
         if (!this._listeners[path]) {
             return;
         }
@@ -191,7 +221,7 @@ var Red = /** @class */ (function () {
     };
     return Red;
 }());
-export default Red;
+export default Red.getInstance();
 /*
  _
 | |
