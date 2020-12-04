@@ -1,6 +1,5 @@
-import Red, { setDebugLevel } from "../src/red"
+import red, { setDebugLevel } from "../src/red"
 
-const red = Red.getInstance()
 setDebugLevel(0);
 test("init", () => {
   red.init(['index', 'index/tab1', 'index/tab2', 'index/tab3', 'index/tab1/btn'])
@@ -82,21 +81,49 @@ describe('del', () => {
   
   test('del - init', () => {
     // can't
-    const ret = red.del('index')
+    red.set('index/tab3', 1)
+    const ret = red.del('index/tab3')
     expect(ret).toBe(false)
-    expect(red.get('index')).not.toBe(0)
+    expect(red.get('index/tab3')).not.toBe(0)
   })
 
   test('del - dynamic', () => {
     // can
-    const ret = red.del('index/tab3/f3')
+    red.set('index/tab3/f4', 1, { force: true })
+    const ret = red.del('index/tab3/f4')
     expect(ret).toBe(true)
-    expect(red.get('index/tab3/f3')).toBe(0)
+    expect(red.get('index/tab3/f4')).toBe(0)
   })
 
   test('del - undefined', () => {
     const ret = red.del('giao/skr')
     expect(ret).toBe(false)
+  })
+
+  test('del - have listener', () => {
+    red.set('custom/dynamic/temp', true, { force: true })
+    let custom = red.get('custom')
+    expect(custom).toBe(1);
+    let receiveTime = 0
+    function fn(num: number) {
+      console.log(num)
+      receiveTime++;
+    }
+    const key_temp = red.on('custom/dynamic/temp', fn)
+    const key_dynamic = red.on('custom/dynamic', fn)
+    const key_custom = red.on('custom', fn)
+    red.set('custom/dynamic/temp', 2)
+    expect(receiveTime).toBe(3);
+    const ret = red.del('custom')
+    expect(ret).toBe(true)
+    red.off('custom/dynamic/temp', key_temp)
+    red.off('custom/dynamic', key_dynamic)
+    red.off('custom', key_custom)
+    expect(red.get('custom/dynamic/temp')).toBe(0)
+    expect(red.get('custom/dynamic')).toBe(0)
+    expect(red.get('custom')).toBe(0)
+    red.set('custom/dynamic/temp', 1)
+    expect(receiveTime).toBe(3);
   })
 
 })
@@ -181,6 +208,6 @@ describe('observer', () => {
 
 describe('test', () => {
   test('dump', () => {
-    red.dump()
+    // red.dump()
   })
 })
