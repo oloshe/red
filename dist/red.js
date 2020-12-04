@@ -177,7 +177,6 @@ var Red = /** @class */ (function () {
             }
             var key = (Math.random() * Math.pow(10, 10)).toFixed(0);
             this._listeners[path].push({ callback: callback, context: context, key: key });
-            console.log(this);
             return key;
         }
         error("Listen (" + path + ") Failed: not a function");
@@ -209,7 +208,6 @@ var Red = /** @class */ (function () {
      * @param value 值
      */
     Red.prototype._notifyAll = function (path, value) {
-        console.log(path, value, this._listeners);
         if (!this._listeners[path]) {
             return;
         }
