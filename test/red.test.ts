@@ -105,8 +105,7 @@ describe('del', () => {
     let custom = red.get('custom')
     expect(custom).toBe(1);
     let receiveTime = 0
-    function fn(num: number) {
-      console.log(num)
+    function fn() {
       receiveTime++;
     }
     const key_temp = red.on('custom/dynamic/temp', fn)
