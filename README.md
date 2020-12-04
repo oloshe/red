@@ -20,8 +20,7 @@ npm install red-manager
 导入
 
 ```TypeScript
-import Red from "red-manager"
-const red = Red.getInstance()
+import red from "red-manager"
 ```
 
 初始化
