@@ -208,6 +208,6 @@ describe('observer', () => {
 
 describe('test', () => {
   test('dump', () => {
-    // red.dump()
+    red.dump()
   })
 })
