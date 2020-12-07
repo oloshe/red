@@ -1,7 +1,7 @@
 {
   "name": "red-manager",
-  "version": "0.0.7",
-  "description": "基于树结构的红点通知管理模块",
+  "version": "0.0.5",
+  "description": "基于树结构的红点通知管理模块(Red dot notification management module based on tree structure)",
   "main": "dist/red.js",
   "types": "dist/type/red.d.ts",
   "scripts": {
@@ -12,13 +12,25 @@
     "testw": "jest --watch",
     "testc": "jest --coverage"
   },
-  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/oloshe/red-manager/issues",
+    "email": "jacob.j@qq.com"
+  },
+  "keywords": [
+    "red dot",
+    "tree",
+    "notification",
+    "util",
+    "红点",
+    "树",
+    "实用函数"
+  ],
   "author": "jacob.jiang",
   "repository": {
     "type": "git",
     "url": "https://github.com/oloshe/red-manager"
   },
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^26.0.15",
     "jest": "^26.6.3",
