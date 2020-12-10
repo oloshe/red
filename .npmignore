@@ -4,3 +4,4 @@ test
 .gitignore
 jest.config.js
 img
+deno
