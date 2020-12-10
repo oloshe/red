@@ -7,7 +7,7 @@ let debugLevel: debugLevelType = 3
 const RedMark = '🔴 '
 const _logFactory = function (f: keyof Console, level: number) {
   return function (...args: any) {
-    debugLevel >= level && console[f].call(console, RedMark, ...args);
+    debugLevel >= level && (console[f] as Function).call(console, RedMark, ...args);
   }
 }
 export const log = _logFactory('log', 3);
