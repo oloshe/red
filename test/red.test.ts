@@ -124,7 +124,18 @@ describe('del', () => {
     red.set('custom/dynamic/temp', 1)
     expect(receiveTime).toBe(3);
   })
+})
 
+describe('clear', () => {
+  test('clear', () => {
+    let times = 10
+    for (let i = 0; i < times; i++) {
+      red.set(`clear/test${i}`, 1, { force: true })
+    }
+    expect(red.get('clear')).toBe(times);
+    red.clear('clear');
+    expect(red.get('clear')).toBe(0);
+  })
 })
 
 describe('get', () => {

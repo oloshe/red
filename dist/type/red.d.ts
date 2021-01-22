@@ -41,12 +41,14 @@ declare class Red {
      * @param path 红点路径
      */
     del(path: string): boolean;
+    clear(path: string): false | undefined;
     /**
      * 删除结点的方法
      * @param path 红点路径
      * @param node 结点
      */
     private _del;
+    private _mapStartWith;
     /**
      * 检查红点数据
      * @param path 红点路径

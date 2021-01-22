@@ -100,6 +100,16 @@ class Red {
     return true
   }
 
+  clear(path: string) {
+    let node = tree.find(path);
+    if (!node) return false;
+    node.children = {};
+    this.set(path, 0);
+    this._mapStartWith(path, p => {
+        delete this.map[p]
+    })
+  }
+
   /**
    * 删除结点的方法
    * @param path 红点路径
@@ -114,16 +124,20 @@ class Red {
       // 没有必要通知监听者
       // 删除红点前通常也会把对应的组件给销毁了
     }
-    let map = this.map, pathPrefix = path + SPLITTER;
-    delByPath(path)
-    for (let p in map) {
-      if (p.startsWith(pathPrefix)) {
-        delByPath(p)
-      }
-    }
+    delByPath(path);
+    this._mapStartWith(path, delByPath)
     // 删除所有Tree上的数据
     node.parent && delete node.parent.children[node.name]
 
+  }
+
+  private _mapStartWith(path: string, callback: (path: string) => void) {
+    var map = red.map, pathPrefix = path + SPLITTER;
+    for (var p in map) {
+        if (p.startsWith(pathPrefix)) {
+            callback(p);
+        }
+    }
   }
 
   /**

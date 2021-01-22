@@ -85,6 +85,17 @@ var Red = /** @class */ (function () {
         log("DEL (" + path + ")");
         return true;
     };
+    Red.prototype.clear = function (path) {
+        var _this = this;
+        var node = tree.find(path);
+        if (!node)
+            return false;
+        node.children = {};
+        this.set(path, 0);
+        this._mapStartWith(path, function (p) {
+            delete _this.map[p];
+        });
+    };
     /**
      * 删除结点的方法
      * @param path 红点路径
@@ -100,15 +111,18 @@ var Red = /** @class */ (function () {
             // 没有必要通知监听者
             // 删除红点前通常也会把对应的组件给销毁了
         };
-        var map = this.map, pathPrefix = path + SPLITTER;
         delByPath(path);
-        for (var p in map) {
-            if (p.startsWith(pathPrefix)) {
-                delByPath(p);
-            }
-        }
+        this._mapStartWith(path, delByPath);
         // 删除所有Tree上的数据
         node.parent && delete node.parent.children[node.name];
+    };
+    Red.prototype._mapStartWith = function (path, callback) {
+        var map = red.map, pathPrefix = path + SPLITTER;
+        for (var p in map) {
+            if (p.startsWith(pathPrefix)) {
+                callback(p);
+            }
+        }
     };
     /**
      * 检查红点数据
