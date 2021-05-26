@@ -250,7 +250,7 @@ class red {
    * @param unionKey 
    * @returns 
    */
-  static get(path: string, unionKey?: string) {
+  static get(path: string, unionKey?: string): number {
     if (!unionKey) {
       let node = red.resolvePath(path, { careless: true });
       if (node) {

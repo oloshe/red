@@ -56,30 +56,13 @@ red.set('index/tab1', haveRedDot) // haveRedDot 会自动转换成 0 / 1
 监听红点数据变化
 
 ```TypeScript
-let key: string
-key = red.on('index', (num: number) => {
+let listen = red.on('index', (num: number) => {
   console.log('index - ' + num)
 })
 
 // 取消监听
-red.off('index', key)
+listen.off()
 ```
-
-## 调试
-
-设置调试等级
-
-```TypeScript
-import { setDebugLevel } from "red-manager"
-setDebugLevel(3);
-```
-
-四个调试等级
-
-- **0**：无任何打印
-- **1**：只打印error
-- **2**：只打印error、warn
-- **3**：打印error、warn、log
 
 查看红点状态
 
@@ -88,6 +71,55 @@ red.dump();
 ```
 
 ![截图](https://raw.githubusercontent.com/oloshe/red-manager/main/img/20201202141157.png)
+
+## Api
+
+初始化红点树
+
+`init(initialPathArr: string[])`
+
+
+设置红点状态
+
+`set(path: string, value: boolean | number, options: SetOption = {})`
+
+获取红点路径的值
+
+`get(path: string, unionKey?: string): number`
+
+删除动态红点
+
+`del(path: string): boolean`
+
+设置红点状态 **此时可以设置非叶子结点的状态**
+
+`unsafe.set(path: string, value: boolean | number, options: SetOption = {})`
+
+删除任意一个红点
+
+`unsafe.del(path: string): boolean`
+
+监听 路径的红点如果值发生了变化会调用 callback
+
+```
+on(path: string, options: {
+  callback: (num: number) => void,
+  context?: any
+  unionKey?: string,
+}): { off: () => void }
+```
+
+取消监听 （也可以用 `red.on` 的返回值来取消监听）
+
+`off(path: string, key: Symbol)`
+
+清理该路径上的红点，包括他的所有子结点
+
+`clear(path: string)`
+
+调试查看
+
+`dump()`
 
 ## 二次封装
 
