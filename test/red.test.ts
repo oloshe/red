@@ -1,6 +1,5 @@
-import red, { setDebugLevel } from "../src/red"
+import red from "../src/red"
 
-setDebugLevel(0);
 test("init", () => {
   red.init(['index', 'index/tab1', 'index/tab2', 'index/tab3', 'index/tab1/btn'])
   // red.map
@@ -36,6 +35,7 @@ describe('set', () => {
   test('set boolean-conversion', () => {
     red.set('index/tab3', true)
     expect(red.get('index/tab3')).toBe(1)
+    red.set('index/tab3', 0)
   })
 
   test('set empty', () => {
@@ -43,6 +43,7 @@ describe('set', () => {
   })
 
   test('set-force', () => {
+    red.set('index/tab3', 0)
     red.set('index/tab3/f1', 1, {
       force: true
     })
@@ -108,21 +109,21 @@ describe('del', () => {
     function fn() {
       receiveTime++;
     }
-    const key_temp = red.on('custom/dynamic/temp', fn)
-    const key_dynamic = red.on('custom/dynamic', fn)
-    const key_custom = red.on('custom', fn)
-    red.set('custom/dynamic/temp', 2)
+    const key_temp = red.on('custom/dynamic/temp', { callback: fn })
+    const key_dynamic = red.on('custom/dynamic', { callback: fn })
+    const key_custom = red.on('custom', { callback: fn })
+    red.set('custom/dynamic/temp', 2) // +3
     expect(receiveTime).toBe(3);
-    const ret = red.del('custom')
+    const ret = red.unsafe.del('custom') // +1
     expect(ret).toBe(true)
-    red.off('custom/dynamic/temp', key_temp)
-    red.off('custom/dynamic', key_dynamic)
-    red.off('custom', key_custom)
+    key_temp.off()
+    key_dynamic.off()
+    key_custom.off()
     expect(red.get('custom/dynamic/temp')).toBe(0)
     expect(red.get('custom/dynamic')).toBe(0)
     expect(red.get('custom')).toBe(0)
     red.set('custom/dynamic/temp', 1)
-    expect(receiveTime).toBe(3);
+    expect(receiveTime).toBe(4);
   })
 })
 
@@ -149,40 +150,8 @@ describe('get', () => {
   })
 })
 
-describe('fix', () => {
-  test('fix', () => {
-    const isFixed = red.fixToggle('index/tab1')
-    expect(isFixed).toBe(true)
-  })
-  test('fix block', () => {
-    let oldIndex = red.get('index')
-    let oldTab1 = red.get('index/tab1')
-    let oldBtn = red.get('index/tab1/btn')
-    let newBtn = 100
-    red.set('index/tab1/btn', newBtn)
-    let newIndex = red.get('index')
-    let newTab1 = red.get('index/tab1')
-    expect(oldIndex).toBe(newIndex)
-    expect(oldTab1).toBe(newTab1)
-    expect(red.get('index/tab1/btn')).toBe(newBtn)
-    expect(oldBtn).not.toBe(newBtn)
-  })
-  test('unFix', () => {
-    const isFixed = red.fixToggle('index/tab1')
-    expect(isFixed).toBe(false)
-  })
-  test('fix unblock', () => {
-    let oldTab1 = red.get('index/tab1')
-    let oldBtn = red.get('index/tab1/btn')
-    let newBtn = 1
-    red.set('index/tab1/btn', newBtn)
-    let newTab1 = red.get('index/tab1')
-    expect(newTab1 - oldTab1).toBe(newBtn - oldBtn)
-  })
-})
-
 describe('observer', () => {
-  let key: string, receiveTime = 0, arr: number[] = []
+  let handle: any, receiveTime = 0, arr: number[] = []
   let fn = (num: number) => {
     receiveTime++
     arr.push(num)
@@ -190,7 +159,7 @@ describe('observer', () => {
 
   test('on', () => {
     let oldIndex = red.get('index')
-    key = red.on('index', fn)
+    handle = red.on('index', { callback: fn })
     let oldTab2 = red.get('index/tab2'), newTab2 = 100
     let oldBtn = red.get('index/tab1/btn'), newBtn = 20
     red.set('index/tab2', newTab2)
@@ -202,15 +171,8 @@ describe('observer', () => {
     ])
   })
 
-  test('on - failed', () => {
-    // this case will happend in ts
-    let errParam:any = 'giao'
-    expect(red.on('index', errParam)).toBe('')
-
-  })
-
   test('off', () => {
-    red.off('index', key)
+    handle.off()
     red.set('index/tab2', 0)
     expect(receiveTime).toBe(2)
   })

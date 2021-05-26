@@ -1,398 +1,435 @@
-import { log, warn, error } from "./log";
-export { setDebugLevel } from "./log"
+export { };
+const log = console.log.bind(console, '🔴 ');
+const error = console.error.bind(console, '🔴 ');
+const warn = console.warn.bind(console, '🔴 ');
+const splitter = "/";
 
-type RedSetOption = {
-  /** 是否强制增加结点 */
-  force?: boolean
-  /** 指定结点 */
-  node?: RedNode
+class RedNode {
+  /** 名字 */
+  name: string
+  /** 双亲 */
+  parent: RedNode | null
+  /** 财产 */
+  _value: number = 0
+  /** 固定（暂时没用上所以不写相关逻辑） */
+  fixed: boolean = false
+  /** 后代 */
+  children: Record<string, RedNode> = {}
+  /**
+   * 血统 （等于旧版本红点的完整路径）
+   */
+  lineage: string
+
+  /** 红点树 根结点 */
+  static root = new RedNode("@root", null);
+
+  constructor(name: string, parent: RedNode | null, lineage?: string) {
+    this.name = name, this.parent = parent;
+    if (lineage != void 0) {
+      this.lineage = lineage
+      return
+    }
+    // 历代血脉
+    this.lineage = [...this]
+      .map(x => x.name)
+      .reverse()
+      .join(splitter);
+  }
+
+  /**
+   * 自身迭代器，从自己到祖先 (不包括 root)
+   */
+  *[Symbol.iterator]() {
+    let dynasties: RedNode = this
+    while (dynasties && dynasties.parent) {
+      yield dynasties
+      dynasties = dynasties.parent
+    }
+  }
+
+  /** 添加孩子 */
+  addChild(path: string): RedNode | null {
+    if (path === "") return null;
+    let keyNames = path.split(splitter);
+    let node: RedNode = this;
+    let len = keyNames.length, tmpPath = "";
+    // 从第0个开始到倒数第2个
+    for (let i = 0; i < len - 1; i++) {
+      let k = keyNames[i];
+      // 如果该字符串为空字符串时，会直接跳过。
+      if (!k) { continue }
+      tmpPath += k;
+      if (node.children[k]) {
+        node = node.children[k];
+      } else {
+        // 中间存在不存在的结点的时候可以自动为其添加结点。
+        let newNode = new RedNode(k, node);
+        node.children[k] = newNode;
+        node = newNode;
+      }
+      tmpPath += splitter;
+    }
+    let leafKey = keyNames[len - 1];
+    let newNode = new RedNode(leafKey, node, path);
+    node.children[leafKey] = newNode;
+    return newNode;
+  }
+
+  /** 在该结点上找到一个结点 */
+  static find(node: RedNode, path: string, options: {
+    /** 是否当找不到的时候插入新的结点 */
+    insertWhenNull?: boolean
+    /** 对找不找得到不关心的化就不用报错了 */
+    careless?: boolean
+  } = {}): RedNode | null {
+    if (!path) return node;
+    let nodeNames = path.split(splitter);
+    let target: RedNode = node;
+    for (let i = 0; i < nodeNames.length; i++) {
+      let name = nodeNames[i];
+      let child = target.children[name];
+      if (!child) {
+        // 动态新增红点
+        if (options.insertWhenNull) {
+          child = new RedNode(name, target)
+          target.children[name] = child
+        } else {
+          !options.careless && error(`查找路径：${path} 失败！\n原因：不存在该红点。\n请确保 InitialPathArr 中包含该路径，或者该路径已经添加为动态结点。`, node.lineage);
+          return null;
+        }
+      }
+      target = child;
+    }
+    return target;
+  }
+
+  get value() {
+    return this._value
+  }
+
+  set value(newValue: number) {
+    if (newValue < 0) { newValue = 0 }
+
+    // 相同值直接 return
+    if (newValue == this._value) return;
+    let delta = newValue - this._value;
+    this._value += delta;
+
+    log(`SET (${this.lineage}) = ${newValue}`);
+    red._notifyAll(this.lineage, newValue);
+
+    if (this.parent && this.parent.parent) {
+      this.parent.value += delta;
+    }
+  }
+
+  /** 忽略红点 深度优先遍历忽略所有子孙后代 */
+  ignore() {
+    if (this.isLeftNode) {
+      this.value = 0;
+    } else {
+      for (let i in this.children) {
+        this.children[i].ignore()
+      }
+    }
+  }
+
+  /** 是否是叶子结点 */
+  get isLeftNode(): boolean {
+    return Object.keys(this.children).length === 0
+  }
 }
 
-const SPLITTER = '/'
+interface SetOption {
+  /** 强制增加结点（无该结点时） */
+  force?: boolean
+  /** 唯一标识，区分多状态红点的来源 */
+  symbol?: string
+}
+interface ListenerData {
+  /** 回调函数 */
+  callback: (num: number) => void
+  /** 上下文 */
+  context: any
+  /** 监听键 */
+  key: Symbol
+  /** 唯一建 */
+  unionKey?: string
+}
 
-class Red {
-  /** 单例 */
-  private static instance: Red;
-  static getInstance(): Red {
-    if (!this.instance) {
-      this.instance = new Red();
+class red {
+  static _initial_path_arr?: string[]
+  /** 初始化红点树 */
+  static init(initialPathArr: string[]) {
+    red._initial_path_arr = initialPathArr;
+    let len = initialPathArr.length;
+    for (let i = 0; i < len; i++) {
+      let path = initialPathArr[i]
+      RedNode.root.addChild(path);
     }
-    return this.instance;
   }
+  /** 红点变化监听者 */
+  static listeners: Record<string, ListenerData[]> = {}
+
+  /** 联合状态字典 */
+  static unionMap: Record<string, Map<string, number>> = {}
 
   /**
-   * 监听者
+   * 判断路径时候能找到结点
+   * @param path 路径
+   * @param force 若为 true ，则不存在时自动添加结点
+   * @returns 
    */
-  private _listeners: {
-    [path: string]: Array<{
-      key: string
-      context?: any
-      callback: (number: number) => void
-    }>
-  } = {}
-
-  /** 初始化路径数组 */
-  private _initialPaths: string[] = []
-
-  /** 红点数据 */
-  private map: {
-    [key: string]: number,
-  } = {}
-
-  /**
-   * 初始化
-   * @param initialPaths 初始化路径
-   */
-  init(initialPaths: string[]) {
-    this._initialPaths = initialPaths;
-    initialPaths.forEach(path => {
-      this.map[path] = 0;
-      tree.addChild(path);
+  static resolvePath(path: string, options: {
+    /** 强制添加 */
+    force?: boolean
+    /** 是否对结果关心 */
+    careless?: boolean
+  } = {}): RedNode | null {
+    if (path == '') return null;
+    let ret = RedNode.find(RedNode.root, path, {
+      insertWhenNull: !!options.force,
+      careless: !!options.careless,
     })
-  }
+    if (ret) {
+      return ret
+    } else {
+      return null
+    }
 
+  }
   /**
-   * 设置红点
-   * @param path 红点路径
+   * 设置红点状态
+   * @param path 路径
    * @param value 值
-   * @param options 选项
+   * @param options 可选参数
+   * @returns 
    */
-  set(path: string, value: number | boolean, options?: RedSetOption) {
-    if (typeof value === 'boolean') value = Number(value)
-    let force = options?.force
-    if (this.map[path] === value || this._checkMap(path, force)) { return }
-    log(`SET (${path}) = ${value}${force?' 📌':''}`)
-    this.map[path] = value
-    RedNode.exec(tree, options?.node ? options.node : path, value)
-    this._notifyAll(path, value)
-  }
-
-  /**
-   * 获取红点状态
-   * @param path 红点路径
-   */
-  get(path: string): number {
-    let result = red.map[path]
-    if (this._checkMap(path)) { return 0 }
-    return result
-  }
-
-  /**
-   * 删除红点
-   * 
-   * *仅可删除动态创建的结点*
-   * @param path 红点路径
-   */
-  del(path: string) {
-    if (this.map[path] === void 0) { return false }
-    if (this._initialPaths.indexOf(path) !== -1) {
-        error(`DEL (${path}) FAIL: can't delete Initialized path`)
-        return false
+  static set(path: string, value: boolean | number, options: SetOption = {}) {
+    if (typeof value === "boolean") value = Number(value);
+    if (typeof value !== 'number') { warn(`red.set('${path}', ${value}) 警告！\n类型需要为 boolean 或者 number，却收到了 ${typeof value} 类型。使用默认值：0`); value = 0 }
+    let {
+      symbol,
+      force,
+    } = options;
+    let node = red.resolvePath(path, { force, careless: false });
+    if (!node) {
+      error(`red.set('${path}', ${value}) 失败! \n原因：路径不存在 \n若要添加动态结点请设置 force 为 true！\noptions:`, options);
+      return
     }
-    if (this._listeners[path] && this._listeners[path].length > 0) {
-      warn(`DEL (${path}) warn: It's still exists listener(s), please cancel listening use red.off`);
+
+    if (symbol) {
+      let state = red.unionMap[path];
+      if (!state) {
+        state = new Map()
+        red.unionMap[path] = state
+      }
+      if (typeof state.get(symbol) != void 0) {
+        state.set(symbol, value)
+        log(`${symbol} => ${value}`)
+      }
+      let num = 0
+      state.forEach(v => num += v)
+      value = num
     }
-    let node = tree.find(path)
-    if (!node) { return false }
-    RedNode.exec(tree, node, 0)
-    this._del(path, node)
-    log(`DEL (${path})`)
-    return true
-  }
 
-  clear(path: string) {
-    let node = tree.find(path);
-    if (!node) return false;
-    node.children = {};
-    this.set(path, 0);
-    this._mapStartWith(path, p => {
-        delete this.map[p]
-    })
-  }
+    if (!node.isLeftNode) {
+      if (!red._non_leaf_node_change_lock_) {
+        log('修改非叶子结点')
+      } else {
+        error(`red.set('${path}', ${value}) 失败!\n原因：正在设置非叶子结点的值，这将会造成父子元素不同步！\n请尽量避免这么干！\n如果不得不修改请使用 red.unsafe.set 方法来设置。`, node)
+        return
+      }
+    }
 
+    node.value = value
+  }
   /**
-   * 删除结点的方法
-   * @param path 红点路径
-   * @param node 结点
+   * 获取红点路径的值
+   * @param path 
+   * @param unionKey 
+   * @returns 
    */
-  private _del(path: string, node: RedNode) {
-    const delByPath = (path: string) => {
-      // 删除所有Map上的数据
-      delete this.map[path]
-      // 删除所有监听者
-      delete this._listeners[path]
-      // 没有必要通知监听者
-      // 删除红点前通常也会把对应的组件给销毁了
-    }
-    delByPath(path);
-    this._mapStartWith(path, delByPath)
-    // 删除所有Tree上的数据
-    node.parent && delete node.parent.children[node.name]
-
-  }
-
-  private _mapStartWith(path: string, callback: (path: string) => void) {
-    var map = red.map, pathPrefix = path + SPLITTER;
-    for (var p in map) {
-        if (p.startsWith(pathPrefix)) {
-            callback(p);
+  static get(path: string, unionKey?: string) {
+    if (!unionKey) {
+      let node = red.resolvePath(path, { careless: true });
+      if (node) {
+        return node.value
+      } else {
+        return 0
+      }
+    } else {
+      let map = red.unionMap[path]
+      if (map != void 0) {
+        let ret = map.get(unionKey)
+        if (ret !== void 0) {
+          return ret
+        } else {
+          warn(`唯一值不存在`, path, unionKey)
+          return 0
         }
+      } else {
+        warn(`路径对象不存在`, path, unionKey)
+        return 0
+      }
+
     }
   }
-
   /**
-   * 检查红点数据
-   * @param path 红点路径
-   * @param force 是否强制增加结点
+   * 删除一个动态红点
+   * 会释放红点树和监听者占用的内存，此时监听函数将不会生效
+   * @param path 
    */
-  private _checkMap(path: string, force?: boolean) {
-    let isVoid = this.map[path] === void 0
-    if (!isVoid) { return false}
-    if (force) {
-        let ret = tree.addChild(path, p => this.map[p] = 0)
-        if (!ret) {
-          error(`NEW (${path}) Failed`)
+  static del(path: string): boolean {
+    if (!path) return false
+    // 在初始化的红点中，默认不能删除，请使用 red.unsafe.del 删除
+    if (red._initial_path_arr?.indexOf(path) != -1) {
+      error(`删除红点 ${path} 失败！\n原因：该路径在初始化红点，默认不能删除，请使用 red.unsafe.del 删除。`)
+      return false
+    }
+    return red.unsafe.del(path);
+  }
+  static unsafe = {
+    /**
+     * 设置红点状态
+     * 
+     * **此时可以设置非叶子结点的状态**
+     * @param path 
+     * @param value 
+     * @param options 
+     */
+    set(path: string, value: boolean | number, options: SetOption = {}) {
+      red._non_leaf_node_change_lock_ = false
+      red.set(path, value, options)
+      red._non_leaf_node_change_lock_ = true
+    },
+
+    /**
+     * 删除任意一个红点
+     * 会释放红点树和监听者占用的内存，此时监听函数将不会生效
+     * @param path 
+     */
+    del(path: string): boolean {
+      let del_node = red.resolvePath(path)
+      if (del_node) {
+        // 删除结点 触发连锁更新
+        let del_path = del_node.lineage;
+        red.unsafe.set(del_path, 0);
+
+        // dfs 检查子结点
+        const check_it_out = (node: RedNode) => {
+          // 监听是否存在
+          let path = node.lineage
+          console.log(path)
+          let arr = red.listeners[path]
+          if (arr && arr.length) {
+            warn(`删除红点：${node.lineage}`);
+            delete red.listeners[path]
+          }
+          // 删除结点
+          delete node.parent?.children[node.name]
+
+          if (!node.isLeftNode) {
+            // 删除非叶子结点需要把所有 children 干掉
+            for (let i in node.children) {
+              check_it_out(node.children[i]);
+            }
+          }
         }
-        return !ret
+        check_it_out(del_node)
+        return true
+      }
+      return false
     }
-    warn(`GET (${path}) Failed: please register: ${path}`)
-    return true
   }
-
   /**
-   * 切换固定状态
-   * @param path 红点路径
+   * 监听 路径的红点如果值发生了变化会调用 callback
+   * @param path 
+   * @param options
+   * @returns 
    */
-  fixToggle(path: string) {
-    let node = tree.find(path)
-    if (!node) { return false }
-    return node.fixToggle()
-  }
-
-  dump() {
-    log('map', this.map)
-    log('listeners', this._listeners)
-    log('tree:')
-    ; (function a(n, l) {
-        l === 1 && console.groupCollapsed(`${n.name} (${n.value})`)
-        l > 1 && console.log(
-            `${'\t'.repeat(l - 1)}%c${n.name} -> %c${n.value}${n.isFixed?' [FIX]':''}`,
-            n.value ? '' : 'color:#777;',
-            n.value ? 'color:#f55;' : 'color:#777;')
-        for (let i in n.children) {
-            a(n.children[i], l + 1)
-        }
-        l === 1 && console.groupEnd()
-    })(tree, 0)
-  }
-
-/*
-        _                                        
-       | |                                       
-  ___  | |__   ___   ___  _ __ __   __ ___  _ __ 
- / _ \ | '_ \ / __| / _ \| '__|\ \ / // _ \| '__|
-| (_) || |_) |\__ \|  __/| |    \ V /|  __/| |   
- \___/ |_.__/ |___/ \___||_|     \_/  \___||_|   
-
-*/
-
-  /**
-   * 订阅监听红点状态
-   * @param path 红点路径
-   * @param callback 回调函数
-   * @param context 回调上下文
-   */
-  on(path: string, callback: (num: number) => void, context?: any) {
-    if (typeof callback === 'function') {
-      if (!this._listeners[path]) { this._listeners[path] = [] }
-      let key = (Math.random() * 10 ** 10).toFixed(0);
-      this._listeners[path].push({ callback, context, key })
-      return key
+  static on(path: string, options: {
+    callback: (num: number) => void,
+    context?: any
+    unionKey?: string,
+  }) {
+    let { unionKey, context, callback } = options
+    let key: Symbol
+    if (typeof callback === "function") {
+      if (!red.listeners[path]) red.listeners[path] = [];
+      // @ts-ignore
+      key = Symbol();
+      red.listeners[path].push({ callback, context, unionKey, key });
+    } else {
+      error(`Listen (${path}) Failed: not a function`);
     }
-    error(`Listen (${path}) Failed: not a function`)
-    return ''
+    return { off: () => red.off(path, key) };
   }
-
+  static clear(path: string) {
+    let node = RedNode.find(RedNode.root, path);
+    if (node) {
+      node.ignore()
+    }
+  }
   /**
-   * 关闭监听
-   * @param path 红点路径
-   * @param key 红点监听钥匙（red.on返回）
+   * 取消监听红点
+   * @param path 
+   * @param key 
+   * @returns 
    */
-  off(path: string, key: string) {
-    if (!this._listeners[path]) { return }
-    let arr = this._listeners[path];
+  static off(path: string, key: Symbol) {
+    if (!red.listeners[path] || !key) return;
+    let arr = red.listeners[path];
     for (let i = 0; i < arr.length; i++) {
-        if (arr[i].key === key) {
-            arr.splice(i, 1)
-            break;
-        }
+      if (arr[i].key === key) {
+        arr.splice(i, 1);
+        break;
+      }
     }
     if (arr.length === 0) {
-        delete this._listeners[path]
+      delete red.listeners[path];
     }
   }
-
-  /**
-   * 红点变化通知所有监听者
-   * @param path 红点路径
-   * @param value 值
-   */
-  private _notifyAll(path: string, value: number) {
-    if (!this._listeners[path]) { return }
-    let arr = this._listeners[path];
+  /** 通知所有该路径上的监听者，值发生了变化，然后把值传递给对应的回调函数  */
+  static _notifyAll(path: string, value: number) {
+    if (!red.listeners[path]) return;
+    let arr = red.listeners[path];
     for (let i = 0; i < arr.length; i++) {
-      let { callback, context } = arr[i]
-      callback.call(context || null, value)
-    }
-  }
-}
-export default Red.getInstance()
-
-/*
- _                 
-| |                
-| |_ _ __ ___  ___ 
-| __| '__/ _ \/ _ \
-| |_| | |  __/  __/
- \__|_|  \___|\___|              
-
-*/
-
-/** 红点结点 */
-class RedNode {
-  children: {
-    [name: string]: RedNode
-  } = {}
-  name: string
-  parent: RedNode | null
-  value: number
-  isFixed: boolean
-
-  constructor(name: string, parent?: RedNode) {
-    this.name = name
-    this.value = 0
-    this.isFixed = false
-    this.parent = parent ?? null
-  }
-
-  /**
-   * 添加子结点
-   * @param path 红点路径
-   * @param callback 红点set的回调，用于设置临时创建的结点
-   */
-  addChild(path: string, callback?: (path: string) => void) {
-    if (path === '') { return false }
-    let keyNames = path.split(SPLITTER)
-    let node: RedNode = this
-    let len = keyNames.length, tmpPath = ''
-    for (let i = 0; i < len - 1; i++) {
-      let k = keyNames[i]
-      tmpPath += k
-      if (node.children[k]) {
-        node = node.children[k]
+      let { callback, context, unionKey } = arr[i];
+      if (!unionKey) {
+        callback.call(context || null, value);
       } else {
-        // across
-        let newNode = new RedNode(k, node)
-        node.children[k] = newNode
-        node = newNode
-        callback?.(tmpPath)
-      }
-      tmpPath += SPLITTER
-    }
-    let leafKey = keyNames[len - 1]
-    let newNode = new RedNode(leafKey, node)
-    node.children[leafKey] = newNode
-    return true
-  }
-
-  /**
-   * 切换固定状态
-   * 解除固定后自动更行自身值
-   */
-  fixToggle() {
-    let isFixed = this.isFixed = !this.isFixed
-    if (!isFixed) {
-      let ret = RedNode._brotherhood(this)
-      red.set(RedNode.getPath(this), ret)
-    }
-    return isFixed
-  }
-
-  /**
-   * 兄弟齐心，获取parent结点所有子辈的值总和
-   * @param parent 目标父节点
-   */
-  private static _brotherhood(parent: RedNode) {
-    let total = 0
-    let children = parent.children
-    for (let i in children) {
-      total += children[i].value
-    }
-    return total
-  }
-
-  /**
-   * 执行更新
-   * @param source 源结点
-   * @param target 目标结点
-   * @param value 值
-   */
-  static exec(source: RedNode, target: string | RedNode, value: number) {
-    let node: RedNode
-    if (typeof target === 'string') {
-      let ret = source.find(target);
-      if (ret === null) { return false }
-      node = ret
-    } else {
-      node = target
-    }
-    if (node.value === value) { return true }
-    node.value = value
-    let parent = node.parent
-    if (node && parent && parent.parent) {
-      let ret = RedNode._brotherhood(parent)
-      if (ret !== parent.value && !parent.isFixed) {
-        let k = RedNode.getPath(parent)
-        red.set(k, ret, {
-          node: parent
-        })
+        callback.call(context || null, red.get(path, unionKey));
       }
     }
-    return true
   }
 
-  /**
-   * 在目标节点下寻找子节点
-   * @param path 路径
-   */
-  find(path: string) {
-    if (!path) { return this }
-    let nodeNames = path.split(SPLITTER)
-    let node: RedNode = this
-    for (let i = 0; i < nodeNames.length; i++) {
-      let child = node.children[nodeNames[i]]
-      if (!child) {
-        error(`Find (${path}) Failed`)
-        return null
+  /** 防止非叶子结点被修改的锁, true => 不允许修改 false => 允许修改 */
+  static _non_leaf_node_change_lock_: boolean = true
+
+  /** 调试用 */
+  static dump() {
+    log("监听者", red.listeners);
+    log("联合状态", red.unionMap);
+    log("状态树:", RedNode.root);
+    (function a(n, l) {
+      let g = `${n.name} (${n.value})`;
+      // @ts-ignore
+      l === 1 && console.groupCollapsed(g);
+      l > 1 && console.log(
+        `${"\t".repeat(l - 1)}%c${n.name} -> %c${n.value}${n.fixed ? " [FIX]" : ""
+        }`,
+        n.value ? "" : "color:#777;",
+        n.value ? "color:#f55;" : "color:#777;",
+      );
+      for (let i in n.children) {
+        a(n.children[i], l + 1);
       }
-      node = child
-    }
-    return node
-  }
-
-  /**
-   * 获取结点完整的路径
-   * @param node 结点
-   */  
-  static getPath(node: RedNode) {
-    let names = []
-    while (node && node.parent) {
-      names.push(node.name)
-      node = node.parent
-    }
-    let ret = names.reverse().join(SPLITTER)
-    return ret
+      // @ts-ignore
+      l === 1 && console.groupEnd(g);
+    })(RedNode.root, 0);
   }
 }
-const red = Red.getInstance();
-const tree = new RedNode('root');
+
+// module.exports = red;
+export default red
