@@ -41,11 +41,21 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
 };
-var log = console.log.bind(console, '🔴 ');
+var log = function () {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+    }
+    if (typeof args[0] === 'string') {
+        args[0] = '🔴 ' + args[0];
+    }
+    console.log.apply(console, __spreadArray([], __read(args)));
+};
 var error = console.error.bind(console, '🔴 ');
 var warn = console.warn.bind(console, '🔴 ');
 var splitter = "/";
@@ -58,12 +68,12 @@ var RedNode = /** @class */ (function () {
         /** 后代 */
         this.children = {};
         this.name = name, this.parent = parent;
-        if (lineage != void 0) {
+        if (lineage !== void 0) {
             this.lineage = lineage;
             return;
         }
         // 历代血脉
-        this.lineage = __spread(this).map(function (x) { return x.name; })
+        this.lineage = __spreadArray([], __read(this)).map(function (x) { return x.name; })
             .reverse()
             .join(splitter);
     }
@@ -157,7 +167,7 @@ var RedNode = /** @class */ (function () {
                 return;
             var delta = newValue - this._value;
             this._value += delta;
-            log("SET (" + this.lineage + ") = " + newValue);
+            log("%c" + this.lineage + " = " + newValue + " %c(" + (delta > 0 ? "+" + delta : delta) + ")", 'color:#aaa;', delta > 0 ? 'color:#ff5353' : 'color:#b6a2ff');
             red._notifyAll(this.lineage, newValue);
             if (this.parent && this.parent.parent) {
                 this.parent.value += delta;
@@ -168,7 +178,7 @@ var RedNode = /** @class */ (function () {
     });
     /** 忽略红点 深度优先遍历忽略所有子孙后代 */
     RedNode.prototype.ignore = function () {
-        if (this.isLeftNode) {
+        if (this.isLeafNode) {
             this.value = 0;
         }
         else {
@@ -177,7 +187,7 @@ var RedNode = /** @class */ (function () {
             }
         }
     };
-    Object.defineProperty(RedNode.prototype, "isLeftNode", {
+    Object.defineProperty(RedNode.prototype, "isLeafNode", {
         /** 是否是叶子结点 */
         get: function () {
             return Object.keys(this.children).length === 0;
@@ -257,7 +267,7 @@ var red = /** @class */ (function () {
             state.forEach(function (v) { return num_1 += v; });
             value = num_1;
         }
-        if (!node.isLeftNode) {
+        if (!node.isLeafNode) {
             if (!red._non_leaf_node_change_lock_) {
                 log('修改非叶子结点');
             }
@@ -440,7 +450,7 @@ var red = /** @class */ (function () {
                     }
                     // 删除结点
                     (_a = node.parent) === null || _a === void 0 ? true : delete _a.children[node.name];
-                    if (!node.isLeftNode) {
+                    if (!node.isLeafNode) {
                         // 删除非叶子结点需要把所有 children 干掉
                         for (var i in node.children) {
                             check_it_out_1(node.children[i]);

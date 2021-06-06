@@ -1,5 +1,10 @@
 export { };
-const log = console.log.bind(console, '🔴 ');
+const log: any = (...args: any) => {
+  if (typeof args[0] === 'string') {
+      args[0] = '🔴 ' + args[0]
+  }
+  console.log(...args)
+};
 const error = console.error.bind(console, '🔴 ');
 const warn = console.warn.bind(console, '🔴 ');
 const splitter = "/";
@@ -25,7 +30,7 @@ class RedNode {
 
   constructor(name: string, parent: RedNode | null, lineage?: string) {
     this.name = name, this.parent = parent;
-    if (lineage != void 0) {
+    if (lineage !== void 0) {
       this.lineage = lineage
       return
     }
@@ -115,7 +120,8 @@ class RedNode {
     let delta = newValue - this._value;
     this._value += delta;
 
-    log(`SET (${this.lineage}) = ${newValue}`);
+    log(`%c${this.lineage} = ${newValue} %c(${delta > 0 ? `+${delta}` : delta})`, 'color:#aaa;', delta > 0 ? 'color:#ff5353' : 'color:#b6a2ff');
+    
     red._notifyAll(this.lineage, newValue);
 
     if (this.parent && this.parent.parent) {
@@ -125,7 +131,7 @@ class RedNode {
 
   /** 忽略红点 深度优先遍历忽略所有子孙后代 */
   ignore() {
-    if (this.isLeftNode) {
+    if (this.isLeafNode) {
       this.value = 0;
     } else {
       for (let i in this.children) {
@@ -135,7 +141,7 @@ class RedNode {
   }
 
   /** 是否是叶子结点 */
-  get isLeftNode(): boolean {
+  get isLeafNode(): boolean {
     return Object.keys(this.children).length === 0
   }
 }
@@ -233,7 +239,7 @@ class red {
       value = num
     }
 
-    if (!node.isLeftNode) {
+    if (!node.isLeafNode) {
       if (!red._non_leaf_node_change_lock_) {
         log('修改非叶子结点')
       } else {
@@ -329,7 +335,7 @@ class red {
           // 删除结点
           delete node.parent?.children[node.name]
 
-          if (!node.isLeftNode) {
+          if (!node.isLeafNode) {
             // 删除非叶子结点需要把所有 children 干掉
             for (let i in node.children) {
               check_it_out(node.children[i]);

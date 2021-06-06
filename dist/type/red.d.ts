@@ -35,7 +35,7 @@ declare class RedNode {
     /** 忽略红点 深度优先遍历忽略所有子孙后代 */
     ignore(): void;
     /** 是否是叶子结点 */
-    get isLeftNode(): boolean;
+    get isLeafNode(): boolean;
 }
 interface SetOption {
     /** 强制增加结点（无该结点时） */

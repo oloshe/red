@@ -8,7 +8,8 @@
         "moduleResolution": "Node",
         "strict": true,
         "removeComments": false,
-        "downlevelIteration": true
+        "downlevelIteration": true,
+        "lib": ["es2015", "dom"]
     },
     "include": [
         "src/**/*"
